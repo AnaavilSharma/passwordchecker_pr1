@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Password Checker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f4f0;
+      --surface: #ffffff;
+      --border: rgba(0,0,0,0.1);
+      --text: #1a1a1a;
+      --muted: #888;
+      --hint: #bbb;
+      --success-bg: #eaf3de;
+      --success-text: #3b6d11;
+      --info-bg: #e6f1fb;
+      --info-text: #185fa5;
+      --radius: 10px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      color: var(--text);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .input-wrap {
+      position: relative;
+      margin-bottom: 1.25rem;
+    }
+
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 48px 12px 14px;
+      font-size: 16px; /* 16px prevents iOS zoom on focus */
+      font-family: 'IBM Plex Mono', monospace;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none; /* removes iOS inset shadow */
+    }
+
+    input:focus { border-color: #888; }
+
+    .toggle-btn {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 48px; /* larger tap target */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+    }
+    .toggle-btn:hover { color: var(--text); }
+    .toggle-btn i { font-size: 20px; }
+
+    .strength-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: var(--muted);
+    }
+    #strength-label { font-weight: 500; }
+
+    .bar-track {
+      height: 7px;
+      background: #eee;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+    }
+    #strength-bar {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: #ddd;
+      transition: width 0.3s ease, background 0.3s ease;
+    }
+
+    .criteria {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 1.25rem;
+    }
+
+    .cr {
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 10px; /* taller rows for readability */
+      border-radius: var(--radius);
+      background: var(--bg);
+      transition: color 0.2s, background 0.2s;
+    }
+    .cr.pass {
+      color: var(--success-text);
+      background: var(--success-bg);
+    }
+    .cr i { font-size: 15px; flex-shrink: 0; }
+
+    .tip {
+      display: none;
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      line-height: 1.6;
+      background: var(--info-bg);
+      color: var(--info-text);
+      border: 1px solid rgba(24,95,165,0.15);
+    }
+    .tip i { font-size: 15px; vertical-align: -2px; margin-right: 5px; }
+
+    /* Mobile tweaks */
+    @media (max-width: 480px) {
+      body { padding: 1rem 0.75rem; align-items: flex-start; padding-top: 2.5rem; }
+      .card { padding: 1.5rem 1.25rem; border-radius: 14px; }
+      h1 { font-size: 22px; }
+      .criteria { grid-template-columns: 1fr; } /* single column on small screens */
+      .cr { font-size: 14px; padding: 10px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Password checker</h1>
+    <p class="subtitle">See how strong your password is</p>
+
+    <div class="input-wrap">
+      <input type="password" id="pw-input" placeholder="Enter a password…" oninput="checkPassword(this.value)" />
+      <button class="toggle-btn" onclick="toggleVisibility()" aria-label="Show password">
+        <i class="ti ti-eye" id="eye-icon"></i>
+      </button>
+    </div>
+
+    <div class="strength-row">
+      <span>Strength</span>
+      <span id="strength-label" style="color:#bbb;">—</span>
+    </div>
+    <div class="bar-track"><div id="strength-bar"></div></div>
+
+    <div class="criteria">
+      <div class="cr" id="cr-length"><i class="ti ti-x"></i> At least 8 chars</div>
+      <div class="cr" id="cr-upper"><i class="ti ti-x"></i> Uppercase letter</div>
+      <div class="cr" id="cr-lower"><i class="ti ti-x"></i> Lowercase letter</div>
+      <div class="cr" id="cr-number"><i class="ti ti-x"></i> Number</div>
+      <div class="cr" id="cr-special"><i class="ti ti-x"></i> Special character</div>
+      <div class="cr" id="cr-long"><i class="ti ti-x"></i> 12+ characters</div>
+    </div>
+
+    <div class="tip" id="tip-box">
+      <i class="ti ti-bulb"></i><span id="tip-text"></span>
+    </div>
+  </div>
+
+  <script>
+    let visible = false;
+
+    function toggleVisibility() {
+      const inp = document.getElementById('pw-input');
+      const icon = document.getElementById('eye-icon');
+      visible = !visible;
+      inp.type = visible ? 'text' : 'password';
+      icon.className = visible ? 'ti ti-eye-off' : 'ti ti-eye';
+    }
+
+    function setCr(id, pass) {
+      const el = document.getElementById(id);
+      el.classList.toggle('pass', pass);
+      el.querySelector('i').className = pass ? 'ti ti-check' : 'ti ti-x';
+    }
+
+    function checkPassword(pw) {
+      const hasUpper   = /[A-Z]/.test(pw);
+      const hasLower   = /[a-z]/.test(pw);
+      const hasNumber  = /[0-9]/.test(pw);
+      const hasSpecial = /[^A-Za-z0-9]/.test(pw);
+      const hasLength  = pw.length >= 8;
+      const hasLong    = pw.length >= 12;
+
+      setCr('cr-length',  hasLength);
+      setCr('cr-upper',   hasUpper);
+      setCr('cr-lower',   hasLower);
+      setCr('cr-number',  hasNumber);
+      setCr('cr-special', hasSpecial);
+      setCr('cr-long',    hasLong);
+
+      const score = [hasUpper, hasLower, hasNumber, hasSpecial, hasLength, hasLong].filter(Boolean).length;
+
+      const bar    = document.getElementById('strength-bar');
+      const label  = document.getElementById('strength-label');
+      const tip    = document.getElementById('tip-box');
+      const tipTxt = document.getElementById('tip-text');
+
+      if (!pw.length) {
+        bar.style.width = '0%';
+        bar.style.background = '#ddd';
+        label.style.color = '#bbb';
+        label.textContent = '—';
+        tip.style.display = 'none';
+        return;
+      }
+
+      let pct, color, text, hint;
+      if (score <= 2) {
+        pct = '20%'; color = '#E24B4A'; text = 'Weak';
+        hint = 'Try mixing uppercase letters, numbers, and symbols.';
+      } else if (score <= 3) {
+        pct = '45%'; color = '#EF9F27'; text = 'Fair';
+        hint = 'Add special characters or make it longer.';
+      } else if (score <= 4) {
+        pct = '65%'; color = '#639922'; text = 'Good';
+        hint = 'Almost there — aim for 12+ characters.';
+      } else if (score === 5) {
+        pct = '82%'; color = '#1D9E75'; text = 'Strong';
+        hint = 'Solid password! Consider 12+ chars for even better security.';
+      } else {
+        pct = '100%'; color = '#1D9E75'; text = 'Very strong';
+        hint = 'Excellent — your password meets all criteria.';
+      }
+
+      bar.style.width = pct;
+      bar.style.background = color;
+      label.style.color = color;
+      label.textContent = text;
+      tipTxt.textContent = hint;
+      tip.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
